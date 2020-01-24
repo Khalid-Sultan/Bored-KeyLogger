@@ -4,11 +4,11 @@
 
 ## Dependencies: System-Hook-3.5.jar
 
-## This App was developed only for Educational Purposes.
+## This App was developed only for Educational Purposes
 
 This Key logger was developed using Java as its core language. \n
 
-It works using two threads working in tandem to log user events captured by Keyboards and Mouses currently operating on the device.\n
+It works using three threads working in tandem to log user events captured by Keyboards, Mouses and Screenshots currently operating on the device.\n
 
 To run the app just go to the App.java class and run the main method. \n
 

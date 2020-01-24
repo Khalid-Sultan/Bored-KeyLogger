@@ -1,11 +1,8 @@
 import os
 import sys
 import threading
-import urllib,urllib3
-import urllib.request
 import win32console
 import win32gui
-import ftplib
 from datetime import datetime
 import time
 import pyautogui
