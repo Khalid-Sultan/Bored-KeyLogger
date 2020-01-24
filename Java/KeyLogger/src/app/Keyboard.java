@@ -24,65 +24,7 @@ public class Keyboard implements Runnable{
 		this.sync = sync;
     }
 
-    // private static boolean run = true;
-
-	@Override
-	public void run() {
-        // Might throw a UnsatisfiedLinkError if the native library fails to load or a RuntimeException if hooking fails 
-		GlobalKeyboardHook keyboardHook = new GlobalKeyboardHook(true); // Use false here to switch to hook instead of raw input
-
-		System.out.println("Key Logging Started, press [escape] key to shutdown. Connected keyboards:");		
-		for (Map.Entry<Long, String> keyboard : GlobalKeyboardHook.listKeyboards().entrySet()) {
-			System.out.format("Key Code : %d: Mode : %s\n", keyboard.getKey(), keyboard.getValue());
-		}
-		keyboardHook.addKeyListener(new GlobalKeyAdapter() {
-		
-			@Override 
-			public void keyPressed(GlobalKeyEvent event) {
-				try{
-					fileWriter.write(event.toString());
-					// System.out.println(event);
-					if (event.getVirtualKeyCode() == GlobalKeyEvent.VK_ESCAPE) {
-						sync.notify_all(false);
-						// run = false;
-					}
-				}
-				catch(IOException ex){
-					System.out.println("Could not write pressed key using file writer");
-				}
-			}
-			
-			@Override 
-			public void keyReleased(GlobalKeyEvent event) {
-				try{
-					fileWriter.write(event.toString());
-					// System.out.println(event);
-				}
-				catch(IOException ex){
-					System.out.println("Could not write release key using file writer");
-				}
-			}
-		});
-		
-		try {
-			while(sync.flag) { 
-				Thread.sleep(128); 
-			}
-		} catch(InterruptedException e) { 
-			System.out.println("Interrupted");
-			//Do nothing
-		} finally {
-			keyboardHook.shutdownHook(); 
-		}
-		try{
-			fileWriter.close();
-		}
-		catch(IOException ex){
-			System.out.println("Could not successfully close file writer");
-		}
-	}
-
-    public void start(){
+	public void start(){
         System.out.println("Thread started");
         if (keyboardThread== null) {
             keyboardThread = new Thread(this, name);
@@ -99,4 +41,68 @@ public class Keyboard implements Runnable{
 			}
         }
     }
+
+	@Override
+	public void run() {
+        // Might throw a UnsatisfiedLinkError if the native library fails to load or a RuntimeException if hooking fails 
+		GlobalKeyboardHook keyboardHook = new GlobalKeyboardHook(true); // Use false here to switch to hook instead of raw input
+
+		System.out.println("Key Logging Started, press [escape] key to shutdown. Connected keyboards:");		
+		for (Map.Entry<Long, String> keyboard : GlobalKeyboardHook.listKeyboards().entrySet()) {
+			System.out.format("Key Code : %d: Mode : %s\n", keyboard.getKey(), keyboard.getValue());
+		}
+		keyboardHook.addKeyListener(new GlobalKeyAdapter() {
+
+			//If a Key is pressed, Log it into the file
+			@Override 
+			public void keyPressed(GlobalKeyEvent event) {
+				try{
+					fileWriter.write("[PRESSED] \t" + event.toString());
+					fileWriter.write("\n");
+					System.out.println("Pressed Keyboard Key Event Captured");
+
+					//If the recorded key is an escape key, notify the sync object to stop everything.
+					if (event.getVirtualKeyCode() == GlobalKeyEvent.VK_ESCAPE) {
+						sync.notify_all(false);
+					}
+				}
+				catch(IOException ex){
+					System.out.println("Could not write pressed key using file writer");
+				}
+			}
+			
+			//If a Key is released, Log it into the file
+			@Override 
+			public void keyReleased(GlobalKeyEvent event) {
+				try{
+					fileWriter.write("[RELEASED] \t" + event.toString());
+					fileWriter.write("\n");
+					System.out.println("Released Keyboard Key Event Captured");
+				}
+				catch(IOException ex){
+					System.out.println("Could not write release key using file writer");
+				}
+			}
+		});
+		
+		//As long as the sync object tells you to keep running, keep logging inputs
+		try {
+			while(sync.flag) { 
+				Thread.sleep(128); 
+			}
+		} catch(InterruptedException e) { 
+			System.out.println("Interrupted");
+		} finally {
+			keyboardHook.shutdownHook(); 
+		}
+
+		//Close the file writer and finish of the thread.
+		try{
+			fileWriter.close();
+		}
+		catch(IOException ex){
+			System.out.println("Could not successfully close file writer");
+		}
+	}
+
 }

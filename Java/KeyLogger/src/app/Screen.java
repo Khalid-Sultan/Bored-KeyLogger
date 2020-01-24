@@ -8,6 +8,7 @@ import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 
 import javax.imageio.ImageIO;
 
@@ -29,18 +30,18 @@ public class Screen implements Runnable{
         while(counter<60 && sync.flag){
             counter++;
             if(counter==60){
-                Capture(image_counter);
+                Capture();
                 image_counter++;
                 counter = 0;
             }
         }
     }
 
-    public void Capture(int image_counter){
+    public void Capture(){
         try{
             Robot robot = new Robot();
             String format = "jpg";
-            String filename = "FullScreenshot_" + image_counter+"."+format;
+            String filename = "FullScreenshot_" + new SimpleDateFormat("yyyy.MM.dd HH.mm.ss").format(new java.util.Date()) +"."+format;
 
             Rectangle screenRect = new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
             BufferedImage screenFullImage = robot.createScreenCapture(screenRect);
