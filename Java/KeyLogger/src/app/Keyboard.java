@@ -10,12 +10,14 @@ import lc.kra.system.keyboard.event.GlobalKeyEvent;
 public class Keyboard implements Runnable{
 
     Thread keyboardThread;
-    private String name;
-    public Keyboard(String name) {
-     this.name = name;
+	private String name;
+	Sync sync;
+    public Keyboard(String name, Sync sync) {
+		this.name = name;
+		this.sync = sync;
     }
 
-    private static boolean run = true;
+    // private static boolean run = true;
 
 	@Override
 	public void run() {
@@ -24,7 +26,7 @@ public class Keyboard implements Runnable{
 
 		System.out.println("Key Logging Started, press [escape] key to shutdown. Connected keyboards:");		
 		for (Map.Entry<Long, String> keyboard : GlobalKeyboardHook.listKeyboards().entrySet()) {
-			System.out.format("%d: %s\n", keyboard.getKey(), keyboard.getValue());
+			System.out.format("Key Code : %d: Mode : %s\n", keyboard.getKey(), keyboard.getValue());
 		}
 		keyboardHook.addKeyListener(new GlobalKeyAdapter() {
 		
@@ -32,7 +34,8 @@ public class Keyboard implements Runnable{
 			public void keyPressed(GlobalKeyEvent event) {
 				System.out.println(event);
 				if (event.getVirtualKeyCode() == GlobalKeyEvent.VK_ESCAPE) {
-					run = false;
+					sync.notify_all(false);
+					// run = false;
 				}
 			}
 			
@@ -43,10 +46,11 @@ public class Keyboard implements Runnable{
 		});
 		
 		try {
-			while(run) { 
+			while(sync.flag) { 
 				Thread.sleep(128); 
 			}
 		} catch(InterruptedException e) { 
+			System.out.println("Interrupted");
 			//Do nothing
 		} finally {
 			keyboardHook.shutdownHook(); 

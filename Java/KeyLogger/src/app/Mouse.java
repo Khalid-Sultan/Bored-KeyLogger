@@ -10,13 +10,15 @@ import lc.kra.system.mouse.event.GlobalMouseEvent;
 public class Mouse implements Runnable{
 
     Thread mouseThread;
-    private String name;
-    public Mouse(String name) {
-     this.name = name;
+	private String name;
+	Sync sync;
+
+    public Mouse(String name, Sync sync) {
+		this.name = name;
+		this.sync = sync;
     }
 
-    private static boolean run = true;
-
+    // private static boolean run = true;
 
 
     @Override
@@ -24,7 +26,7 @@ public class Mouse implements Runnable{
         GlobalMouseHook mouseHook = new GlobalMouseHook(); // Add true to the constructor, to switch to raw input mode
 		System.out.println("Global mouse hook successfully started, press [middle] mouse button to shutdown. Connected mice:");		
 		for (Map.Entry<Long,String> mouse:GlobalMouseHook.listMice().entrySet()) {
-			System.out.format("%d: %s\n", mouse.getKey(), mouse.getValue());
+			System.out.format("Key : %d: Value: %s\n", mouse.getKey(), mouse.getValue());
 		}
         mouseHook.addMouseListener(new GlobalMouseAdapter() {
 		
@@ -36,7 +38,8 @@ public class Mouse implements Runnable{
 					System.out.println("Both mouse buttons are currently pressed!");
 				}
 				if (event.getButton()==GlobalMouseEvent.BUTTON_MIDDLE) {
-					run = false;
+					// run = false;
+					sync.notify_all(false);
 				}
 			}
 			
@@ -57,7 +60,7 @@ public class Mouse implements Runnable{
 		});
 		
 		try {
-			while(run) { 
+			while(sync.flag) { 
 				Thread.sleep(128); 
 			}
 		} catch(InterruptedException e) { 
