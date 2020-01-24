@@ -26,12 +26,10 @@ public class Screen implements Runnable{
     @Override
     public void run(){
         int counter = 0;
-        int image_counter = 1;
         while(counter<60 && sync.flag){
             counter++;
             if(counter==60){
                 Capture();
-                image_counter++;
                 counter = 0;
             }
         }
